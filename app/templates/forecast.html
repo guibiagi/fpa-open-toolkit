@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+
+{% block title %}Forecast de Receita · FP&A Open Toolkit{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+  {# Header #}
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <h1 class="text-2xl font-bold text-slate-900">Forecast de Receita</h1>
+    <a href="/api/export/xlsx" class="inline-flex items-center gap-2 bg-accent text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-emerald-700 transition shadow-sm">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+      </svg>
+      Exportar Excel
+    </a>
+  </div>
+
+  {# Controls #}
+  <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5"
+       hx-get="/api/forecast"
+       hx-target="#forecast-content"
+       hx-swap="innerHTML"
+       hx-trigger="change from:.forecast-control, click from:[data-scenario] delay:200ms">
+
+    <div class="flex flex-wrap items-end gap-4">
+      {# Scenario buttons #}
+      <div class="flex-1 min-w-[200px]">
+        <label class="block text-sm font-medium text-slate-700 mb-2">Cenário</label>
+        <div class="inline-flex rounded-lg bg-slate-100 p-1" role="group">
+          <button type="button" data-scenario="base" data-active="true"
+                  class="scenario-btn px-4 py-2 text-sm font-medium rounded-md transition bg-white text-slate-900 shadow-sm">
+            Base
+          </button>
+          <button type="button" data-scenario="otimista" data-active="false"
+                  class="scenario-btn px-4 py-2 text-sm font-medium rounded-md transition text-slate-600 hover:text-slate-900">
+            <span class="text-emerald-600 mr-1">▲</span> Otimista
+          </button>
+          <button type="button" data-scenario="pessimista" data-active="false"
+                  class="scenario-btn px-4 py-2 text-sm font-medium rounded-md transition text-slate-600 hover:text-slate-900">
+            <span class="text-red-500 mr-1">▼</span> Pessimista
+          </button>
+        </div>
+        <input type="hidden" name="scenario" id="scenario-input" value="base" class="forecast-control">
+      </div>
+
+      {# Horizon #}
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-2">Horizonte (meses)</label>
+        <input type="number" name="horizon" value="12" min="1" max="24"
+               class="forecast-control w-24 px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-accent focus:border-accent">
+      </div>
+
+      {# Optimistic % #}
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-2">% Otimista</label>
+        <input type="number" name="otimista_pct" value="10" min="0" max="50"
+               class="forecast-control w-24 px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-accent focus:border-accent">
+      </div>
+
+      {# Pessimistic % #}
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-2">% Pessimista</label>
+        <input type="number" name="pessimista_pct" value="10" min="0" max="50"
+               class="forecast-control w-24 px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-accent focus:border-accent">
+      </div>
+    </div>
+  </div>
+
+  {# Content area — chart + table #}
+  <div id="forecast-content">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {# Chart (2/3 width) #}
+      <div class="lg:col-span-2 bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+        <h2 class="text-lg font-semibold text-slate-800 mb-4">Projeção de Faturamento</h2>
+        <div class="relative h-80">
+          <canvas id="chart-forecast-main"></canvas>
+        </div>
+      </div>
+
+      {# Summary stats (1/3 width) #}
+      <div class="space-y-4">
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+          <h3 class="text-sm font-medium text-slate-500 uppercase tracking-wide">Média Proj. (Base)</h3>
+          <p class="mt-1 text-2xl font-bold text-slate-900" id="stat-mean">--</p>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+          <h3 class="text-sm font-medium text-slate-500 uppercase tracking-wide">Máximo Proj.</h3>
+          <p class="mt-1 text-2xl font-bold text-emerald-600" id="stat-max">--</p>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+          <h3 class="text-sm font-medium text-slate-500 uppercase tracking-wide">Mínimo Proj.</h3>
+          <p class="mt-1 text-2xl font-bold text-red-600" id="stat-min">--</p>
+        </div>
+      </div>
+    </div>
+
+    {# Table #}
+    <div class="mt-6 bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+      <div class="px-5 py-4 border-b border-slate-200">
+        <h2 class="text-lg font-semibold text-slate-800">Tabela de Forecast</h2>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-slate-200" id="forecast-table">
+          <thead class="bg-slate-50">
+            <tr>
+              <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Mês</th>
+              <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase">Base</th>
+              <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase">Otimista</th>
+              <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase">Pessimista</th>
+              <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase">Var. vs Média 12m</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-200" id="forecast-tbody">
+            {# Populated by JS / HTMX #}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function() {
+  // Scenario button toggle logic
+  document.querySelectorAll('[data-scenario]').forEach(btn => {
+    btn.addEventListener('click', function() {
+      document.querySelectorAll('.scenario-btn').forEach(b => {
+        b.dataset.active = 'false';
+        b.classList.remove('bg-white', 'text-slate-900', 'shadow-sm');
+        b.classList.add('text-slate-600');
+      });
+      this.dataset.active = 'true';
+      this.classList.add('bg-white', 'text-slate-900', 'shadow-sm');
+      this.classList.remove('text-slate-600');
+      document.getElementById('scenario-input').value = this.dataset.scenario;
+      // Trigger HTMX
+      document.getElementById('scenario-input').dispatchEvent(new Event('change'));
+    });
+  });
+
+  // Initialize with mock data
+  const months = ['Jan/26','Fev/26','Mar/26','Abr/26','Mai/26','Jun/26',
+                  'Jul/26','Ago/26','Set/26','Out/26','Nov/26','Dez/26'];
+  const baseValues = months.map(() => ~~(900000 + Math.random() * 300000));
+  const optValues = baseValues.map(v => ~~(v * 1.1));
+  const pesValues = baseValues.map(v => ~~(v * 0.9));
+
+  // Chart
+  renderLineChart(document.getElementById('chart-forecast-main'), months, [
+    {
+      label: 'Base', data: baseValues,
+      borderColor: '#059669', backgroundColor: 'rgba(5,150,105,0.1)',
+      fill: true, tension: 0.3, pointRadius: 3
+    },
+    {
+      label: 'Otimista', data: optValues,
+      borderColor: '#10b981', borderDash: [5,5],
+      fill: false, tension: 0.3, pointRadius: 0, borderWidth: 1.5
+    },
+    {
+      label: 'Pessimista', data: pesValues,
+      borderColor: '#f87171', borderDash: [5,5],
+      fill: false, tension: 0.3, pointRadius: 0, borderWidth: 1.5
+    }
+  ]);
+
+  // Stats
+  document.getElementById('stat-mean').textContent = 'R$ ' + formatBRL(avg(baseValues));
+  document.getElementById('stat-max').textContent = 'R$ ' + formatBRL(Math.max(...baseValues));
+  document.getElementById('stat-min').textContent = 'R$ ' + formatBRL(Math.min(...baseValues));
+
+  // Table
+  const tbody = document.getElementById('forecast-tbody');
+  const mean12m = avg(baseValues);
+  months.forEach((m, i) => {
+    const row = document.createElement('tr');
+    const variation = ((baseValues[i] - mean12m) / mean12m * 100).toFixed(1);
+    const varClass = variation >= 0 ? 'text-emerald-600' : 'text-red-600';
+    const varSign = variation >= 0 ? '+' : '';
+    row.innerHTML = `
+      <td class="px-4 py-3 text-sm text-slate-900 whitespace-nowrap font-medium">${m}</td>
+      <td class="px-4 py-3 text-sm text-slate-900 text-right font-mono">${formatBRL(baseValues[i])}</td>
+      <td class="px-4 py-3 text-sm text-emerald-600 text-right font-mono">${formatBRL(optValues[i])}</td>
+      <td class="px-4 py-3 text-sm text-red-600 text-right font-mono">${formatBRL(pesValues[i])}</td>
+      <td class="px-4 py-3 text-sm ${varClass} text-right font-medium">${varSign}${variation}%</td>
+    `;
+    tbody.appendChild(row);
+  });
+
+  function avg(arr) { return arr.reduce((a,b)=>a+b,0)/arr.length; }
+  function formatBRL(n) {
+    return n.toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2});
+  }
+})();
+</script>
+{% endblock %}

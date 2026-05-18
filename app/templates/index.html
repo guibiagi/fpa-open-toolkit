@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard · FP&A Open Toolkit{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+  {# Header #}
+  <div class="flex items-center justify-between">
+    <h1 class="text-2xl font-bold text-slate-900">Visão Geral</h1>
+    <span class="text-sm text-slate-500 bg-white px-3 py-1 rounded-full border border-slate-200">
+      Dados sintéticos · PME Industrial
+    </span>
+  </div>
+
+  {# Cards grid #}
+  <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4"
+       id="overview-cards"
+       hx-get="/api/overview"
+       hx-trigger="load"
+       hx-target="#overview-cards"
+       hx-swap="innerHTML">
+
+    {# Placeholder cards (shown until HTMX loads) #}
+    {% for label in ['Receita 12m', 'Variação YoY', 'Saldo Caixa', 'Menor Saldo', 'Estoque', 'Dívida', 'NCG'] %}
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 animate-pulse">
+      <div class="text-xs font-medium text-slate-500 uppercase tracking-wide">{{ label }}</div>
+      <div class="mt-2 h-6 bg-slate-200 rounded w-20"></div>
+    </div>
+    {% endfor %}
+  </div>
+
+  {# Charts row 1 #}
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    {# Revenue history #}
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-lg font-semibold text-slate-800">Receita Mensal (últimos 24 meses)</h2>
+      </div>
+      <div class="relative h-64">
+        <canvas id="chart-revenue"></canvas>
+      </div>
+    </div>
+
+    {# Forecast preview #}
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-lg font-semibold text-slate-800">Forecast (12 meses)</h2>
+        <a href="/forecast" class="text-sm text-accent hover:underline">Ver completo →</a>
+      </div>
+      <div class="relative h-64">
+        <canvas id="chart-forecast"></canvas>
+      </div>
+    </div>
+  </div>
+
+  {# Charts row 2 #}
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    {# Cash flow daily #}
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-lg font-semibold text-slate-800">Fluxo de Caixa Diário (90 dias)</h2>
+        <a href="/cashflow" class="text-sm text-accent hover:underline">Ver completo →</a>
+      </div>
+      <div class="relative h-64">
+        <canvas id="chart-cashflow"></canvas>
+      </div>
+    </div>
+
+    {# NCG composition #}
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-lg font-semibold text-slate-800">Composição do Capital de Giro</h2>
+        <a href="/working-capital" class="text-sm text-accent hover:underline">Ver completo →</a>
+      </div>
+      <div class="relative h-64 flex items-center justify-center">
+        <canvas id="chart-ncg" style="max-width: 280px;"></canvas>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', async function() {
+  // Mock data — será substituído por chamadas API reais no futuro
+  const months = [
+    'Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez',
+    'Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'
+  ];
+
+  // Revenue history (24 months)
+  const revenueData = months.map((_, i) => 800000 + Math.sin(i/3)*150000 + Math.random()*50000);
+  renderLineChart(document.getElementById('chart-revenue'), months, [{
+    label: 'Faturamento (R$)',
+    data: revenueData,
+    borderColor: '#059669',
+    backgroundColor: 'rgba(5, 150, 105, 0.1)',
+    fill: true,
+    tension: 0.4,
+    pointRadius: 2
+  }]);
+
+  // Forecast (12 months ahead)
+  const forecastLabels = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  const forecastBase = forecastLabels.map(() => 950000 + Math.random()*100000);
+  renderLineChart(document.getElementById('chart-forecast'), forecastLabels, [
+    {
+      label: 'Base',
+      data: forecastBase,
+      borderColor: '#059669',
+      backgroundColor: 'rgba(5, 150, 105, 0.1)',
+      fill: true,
+      tension: 0.4,
+      pointRadius: 3
+    },
+    {
+      label: 'Otimista',
+      data: forecastBase.map(v => v * 1.1),
+      borderColor: '#059669',
+      borderDash: [5, 5],
+      fill: false,
+      tension: 0.4,
+      pointRadius: 0,
+      borderWidth: 1.5
+    },
+    {
+      label: 'Pessimista',
+      data: forecastBase.map(v => v * 0.9),
+      borderColor: '#dc2626',
+      borderDash: [5, 5],
+      fill: false,
+      tension: 0.4,
+      pointRadius: 0,
+      borderWidth: 1.5
+    }
+  ]);
+
+  // Cash flow (90 days)
+  const days90 = Array.from({length: 90}, (_, i) => `D${i+1}`);
+  let balance = 500000;
+  const balances = days90.map(() => {
+    balance += (Math.random() - 0.45) * 80000;
+    return balance;
+  });
+  renderLineChart(document.getElementById('chart-cashflow'), days90, [{
+    label: 'Saldo Projetado',
+    data: balances,
+    borderColor: '#2563eb',
+    backgroundColor: 'rgba(37, 99, 235, 0.08)',
+    fill: true,
+    tension: 0.3,
+    pointRadius: 0,
+    borderWidth: 1.5
+  }]);
+
+  // NCG Donut
+  renderDonutChart(document.getElementById('chart-ncg'), ['Receber', 'Estoque', 'Pagar'], [1200000, 850000, -950000]);
+});
+</script>
+{% endblock %}

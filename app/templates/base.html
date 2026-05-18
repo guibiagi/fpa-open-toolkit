@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}FP&A Open Toolkit{% endblock %}</title>
+
+  {# TailwindCSS CDN #}
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#1e293b',    // slate-800
+            accent: '#059669',     // emerald-600
+            danger: '#dc2626',     // red-600
+            warning: '#f59e0b',    // amber-500
+            surface: '#f8fafc',    // slate-50
+          }
+        }
+      }
+    }
+  </script>
+
+  {# HTMX CDN #}
+  <script src="https://unpkg.com/htmx.org@2.0.4"
+          integrity="sha384-HGfztofotfshCVFez9fj98rbt6i6ysbDrzyK1h8Tq2pK0gLK1Y04q7a8zW2z9p+i"
+          crossorigin="anonymous" defer></script>
+
+  {# Chart.js CDN #}
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js" defer></script>
+
+  {# Custom overrides #}
+  <link rel="stylesheet" href="/static/css/custom.css">
+
+  {% block extra_head %}{% endblock %}
+</head>
+
+<body class="bg-surface text-slate-800 font-sans antialiased min-h-screen flex flex-col">
+
+  {# Navbar #}
+  <nav class="bg-primary text-white shadow-lg sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+        {# Brand #}
+        <div class="flex items-center gap-3">
+          <a href="/" class="flex items-center gap-2 hover:opacity-90 transition">
+            <svg class="w-7 h-7 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+            </svg>
+            <span class="font-bold text-lg tracking-tight">FP&A Open Toolkit</span>
+          </a>
+        </div>
+
+        {# Desktop links #}
+        <div class="hidden md:flex items-center gap-1">
+          {% set nav_links = [
+            ('/', 'Dashboard'),
+            ('/forecast', 'Forecast'),
+            ('/cashflow', 'Caixa'),
+            ('/working-capital', 'Giro'),
+            ('/debt', 'Dívida'),
+            ('/explorer', 'Explorer'),
+          ] %}
+          {% for path, label in nav_links %}
+            <a href="{{ path }}"
+               class="px-3 py-1.5 rounded-md text-sm font-medium transition
+                      {% if request and request.url.path == path %}
+                        bg-accent text-white
+                      {% else %}
+                        text-slate-300 hover:bg-slate-700 hover:text-white
+                      {% endif %}">
+              {{ label }}
+            </a>
+          {% endfor %}
+        </div>
+
+        {# Mobile menu button #}
+        <div class="md:hidden">
+          <button id="mobile-menu-btn" class="p-2 rounded-md hover:bg-slate-700 transition">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M4 6h16M4 12h16M4 18h16"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      {# Mobile dropdown #}
+      <div id="mobile-menu" class="hidden md:hidden pb-3">
+        {% for path, label in nav_links %}
+          <a href="{{ path }}"
+             class="block px-3 py-2 rounded-md text-base font-medium transition
+                    {% if request and request.url.path == path %}
+                      bg-accent text-white
+                    {% else %}
+                      text-slate-300 hover:bg-slate-700 hover:text-white
+                    {% endif %}">
+            {{ label }}
+          </a>
+        {% endfor %}
+      </div>
+    </div>
+  </nav>
+
+  {# Main content #}
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    {% block content %}{% endblock %}
+  </main>
+
+  {# Footer #}
+  <footer class="bg-white border-t border-slate-200 mt-auto">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+      <div class="flex flex-col sm:flex-row justify-between items-center gap-2 text-sm text-slate-500">
+        <span>FP&A Open Toolkit · <a href="https://github.com/guibiagi/fpa-open-toolkit" class="hover:text-accent transition">GitHub</a></span>
+        <span>Dados sintéticos · Não substitui consultoria financeira</span>
+      </div>
+    </div>
+  </footer>
+
+  {# Mobile menu toggle #}
+  <script>
+    document.getElementById('mobile-menu-btn')?.addEventListener('click', function() {
+      document.getElementById('mobile-menu').classList.toggle('hidden');
+    });
+  </script>
+
+  {# Shared chart helpers #}
+  <script src="/static/js/charts.js"></script>
+
+  {% block scripts %}{% endblock %}
+</body>
+</html>

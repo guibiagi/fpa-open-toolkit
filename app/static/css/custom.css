@@ -1,0 +1,129 @@
+/*
+ * FP&A Open Toolkit — Custom CSS
+ * Minimal overrides on top of TailwindCSS CDN.
+ * All selectors use low specificity to avoid breaking Tailwind utilities.
+ */
+
+/* --- Typography ---------------------------------------------------- */
+
+body {
+  font-feature-settings: "kern" 1, "liga" 1;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* --- Tables -------------------------------------------------------- */
+
+table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+table th {
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+}
+
+/* --- Cards & Surfaces ---------------------------------------------- */
+
+.card-elevated {
+  transition: box-shadow 0.2s ease, transform 0.15s ease;
+}
+
+.card-elevated:hover {
+  box-shadow: 0 4px 16px -2px rgba(0, 0, 0, 0.07), 0 2px 6px -2px rgba(0, 0, 0, 0.04);
+  transform: translateY(-1px);
+}
+
+/* --- Status Badges ------------------------------------------------- */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.25rem;
+}
+
+.badge-success { background: #d1fae5; color: #065f46; }
+.badge-warning { background: #fef3c7; color: #92400e; }
+.badge-danger  { background: #fee2e2; color: #991b1b; }
+.badge-info    { background: #dbeafe; color: #1e40af; }
+.badge-muted   { background: #f1f5f9; color: #475569; }
+
+/* --- Form Inputs --------------------------------------------------- */
+
+input[type="number"],
+input[type="date"],
+select {
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+input[type="number"]:focus,
+input[type="date"]:focus,
+select:focus {
+  outline: none;
+  border-color: #059669; /* accent */
+  box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.15);
+}
+
+/* --- Buttons ------------------------------------------------------- */
+
+.btn-primary {
+  background: #059669;
+  color: #fff;
+  transition: background 0.15s, box-shadow 0.15s;
+}
+
+.btn-primary:hover {
+  background: #047857;
+  box-shadow: 0 2px 8px rgba(5, 150, 105, 0.25);
+}
+
+/* --- HTMX Loading States ------------------------------------------- */
+
+.htmx-request {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* --- Chart Containers ---------------------------------------------- */
+
+.chart-container {
+  position: relative;
+  height: 100%;
+  width: 100%;
+}
+
+/* --- Scrollbar (Webkit) -------------------------------------------- */
+
+.overflow-x-auto::-webkit-scrollbar {
+  height: 6px;
+}
+
+.overflow-x-auto::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 3px;
+}
+
+.overflow-x-auto::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+.overflow-x-auto::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* --- Print --------------------------------------------------------- */
+
+@media print {
+  nav, footer, .no-print {
+    display: none !important;
+  }
+  main {
+    max-width: 100% !important;
+    padding: 0 !important;
+  }
+}
