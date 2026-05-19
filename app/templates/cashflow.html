@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+
+{% block title %}Fluxo de Caixa · FP&A Open Toolkit{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+  {# Header #}
+  <div class="flex items-center justify-between">
+    <h1 class="text-2xl font-bold text-slate-900">Fluxo de Caixa Projetado</h1>
+    <span class="text-sm text-slate-500 bg-white px-3 py-1 rounded-full border border-slate-200">
+      Projeção diária
+    </span>
+  </div>
+
+  {# Controls #}
+  <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+    <form id="cashflow-form"
+          hx-get="/api/cashflow"
+          hx-target="#cashflow-content"
+          hx-swap="innerHTML"
+          hx-trigger="submit"
+          class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+
+      <div>
+        <label for="saldo_inicial" class="block text-sm font-medium text-slate-700 mb-1">
+          Saldo Inicial (R$)
+        </label>
+        <input type="number" id="saldo_inicial" name="saldo_inicial"
+               value="500000" step="1000" min="0"
+               class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-accent focus:border-accent outline-none transition">
+      </div>
+
+      <div>
+        <label for="horizon" class="block text-sm font-medium text-slate-700 mb-1">
+          Horizonte (dias)
+        </label>
+        <select id="horizon" name="horizon"
+                class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-accent focus:border-accent outline-none transition">
+          <option value="30">30 dias</option>
+          <option value="60">60 dias</option>
+          <option value="90" selected>90 dias</option>
+          <option value="120">120 dias</option>
+          <option value="180">180 dias</option>
+        </select>
+      </div>
+
+      <div>
+        <label for="cenario" class="block text-sm font-medium text-slate-700 mb-1">
+          Cenário de Receita
+        </label>
+        <select id="cenario" name="scenario"
+                class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-accent focus:border-accent outline-none transition">
+          <option value="base">Base</option>
+          <option value="otimista">Otimista (+10%)</option>
+          <option value="pessimista">Pessimista (-10%)</option>
+        </select>
+      </div>
+
+      <div>
+        <button type="submit"
+                class="w-full bg-accent hover:bg-emerald-700 text-white font-medium py-2 px-4 rounded-lg text-sm transition">
+          Reprocessar
+        </button>
+      </div>
+    </form>
+  </div>
+
+  {# Main content area (updated via HTMX) #}
+  <div id="cashflow-content">
+
+    {# Alerts row #}
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+      <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+        <div class="text-xs font-medium text-slate-500 uppercase tracking-wide">Saldo Final Projetado</div>
+        <div class="mt-1 text-2xl font-bold text-emerald-600">—</div>
+      </div>
+      <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+        <div class="text-xs font-medium text-slate-500 uppercase tracking-wide">Menor Saldo Projetado</div>
+        <div class="mt-1 text-2xl font-bold text-amber-600">—</div>
+      </div>
+      <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+        <div class="text-xs font-medium text-slate-500 uppercase tracking-wide">Dias com Caixa Negativo</div>
+        <div class="mt-1 text-2xl font-bold text-red-600">0</div>
+      </div>
+    </div>
+
+    {# Chart #}
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 mb-6">
+      <h2 class="text-lg font-semibold text-slate-800 mb-4">Saldo Diário Projetado</h2>
+      <div class="relative h-80">
+        <canvas id="chart-cashflow-main"></canvas>
+      </div>
+    </div>
+
+    {# Transactions table #}
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+      <h2 class="text-lg font-semibold text-slate-800 mb-4">Entradas e Saídas (últimos 30 dias)</h2>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b border-slate-200 text-left">
+              <th class="py-2 px-3 font-medium text-slate-500">Data</th>
+              <th class="py-2 px-3 font-medium text-slate-500 text-right">Entradas</th>
+              <th class="py-2 px-3 font-medium text-slate-500 text-right">Saídas</th>
+              <th class="py-2 px-3 font-medium text-slate-500 text-right">Saldo Final</th>
+              <th class="py-2 px-3 font-medium text-slate-500">Status</th>
+            </tr>
+          </thead>
+          <tbody id="cashflow-table-body">
+            <tr><td colspan="5" class="py-8 text-center text-slate-400">Configure os parâmetros e clique em Reprocessar.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const ctx = document.getElementById('chart-cashflow-main');
+  if (ctx) {
+    const days = Array.from({length: 90}, (_, i) => `D${i+1}`);
+    let balance = 500000;
+    const balances = days.map(() => {
+      balance += (Math.random() - 0.45) * 80000;
+      return balance;
+    });
+    window.renderLineChart(ctx, days, [{
+      label: 'Saldo (R$)',
+      data: balances,
+      borderColor: FPA_COLORS.secondary,
+      backgroundColor: 'rgba(37, 99, 235, 0.08)',
+      fill: true,
+      tension: 0.3,
+      pointRadius: 0,
+      borderWidth: 1.5
+    }]);
+  }
+
+  // HTMX after-swap: re-render chart when new data arrives
+  document.getElementById('cashflow-content').addEventListener('htmx:afterSwap', function(e) {
+    if (e.detail.target.id === 'cashflow-content') {
+      const newCtx = document.getElementById('chart-cashflow-main');
+      if (newCtx) {
+        // In production, data comes from the API response.
+        // Placeholder re-render for now.
+      }
+    }
+  });
+});
+</script>
+{% endblock %}

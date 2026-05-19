@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+
+{% block title %}Capital de Giro · FP&A Open Toolkit{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+  {# Header #}
+  <div class="flex items-center justify-between">
+    <h1 class="text-2xl font-bold text-slate-900">Capital de Giro</h1>
+    <span class="text-sm text-slate-500 bg-white px-3 py-1 rounded-full border border-slate-200">
+      NCG · Ciclo Financeiro
+    </span>
+  </div>
+
+  {# KPI cards #}
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4"
+       id="wc-cards"
+       hx-get="/api/working-capital"
+       hx-trigger="load"
+       hx-target="#wc-cards"
+       hx-swap="innerHTML">
+    {% for label, value in [
+      ('Contas a Receber', '—'),
+      ('Contas a Pagar', '—'),
+      ('Estoque', '—'),
+      ('NCG', '—')
+    ] %}
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 animate-pulse">
+      <div class="text-xs font-medium text-slate-500 uppercase tracking-wide">{{ label }}</div>
+      <div class="mt-2 text-xl font-bold text-slate-800">{{ value }}</div>
+    </div>
+    {% endfor %}
+  </div>
+
+  {# Evolution chart #}
+  <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+    <h2 class="text-lg font-semibold text-slate-800 mb-4">Evolução Mensal dos Componentes</h2>
+    <div class="relative h-72">
+      <canvas id="chart-wc-evolution"></canvas>
+    </div>
+  </div>
+
+  {# Bottom row: donut + cycle table #}
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    {# Stock composition donut #}
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+      <h2 class="text-lg font-semibold text-slate-800 mb-4">Composição do Estoque</h2>
+      <div class="relative h-64 flex items-center justify-center">
+        <canvas id="chart-estoque-donut" style="max-width: 260px;"></canvas>
+      </div>
+    </div>
+
+    {# Cycle metrics table #}
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+      <h2 class="text-lg font-semibold text-slate-800 mb-4">Ciclo Financeiro</h2>
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="border-b border-slate-200 text-left">
+            <th class="py-2 font-medium text-slate-500">Indicador</th>
+            <th class="py-2 font-medium text-slate-500 text-right">Dias</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="border-b border-slate-100">
+            <td class="py-2 text-slate-700">Prazo Médio de Recebimento (PMR)</td>
+            <td class="py-2 text-right font-medium text-slate-800">—</td>
+          </tr>
+          <tr class="border-b border-slate-100">
+            <td class="py-2 text-slate-700">Prazo Médio de Estoque (PME)</td>
+            <td class="py-2 text-right font-medium text-slate-800">—</td>
+          </tr>
+          <tr class="border-b border-slate-100">
+            <td class="py-2 text-slate-700">Prazo Médio de Pagamento (PMP)</td>
+            <td class="py-2 text-right font-medium text-slate-800">—</td>
+          </tr>
+          <tr>
+            <td class="py-2 text-slate-900 font-semibold">Ciclo Financeiro (PMR+PME−PMP)</td>
+            <td class="py-2 text-right font-bold text-emerald-600">—</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // WC evolution chart
+  const evoCtx = document.getElementById('chart-wc-evolution');
+  if (evoCtx) {
+    const months = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+    const ar = months.map(() => 1000000 + Math.random() * 300000);
+    const estoque = months.map(() => 700000 + Math.random() * 200000);
+    const ap = months.map(() => 800000 + Math.random() * 250000);
+    window.renderLineChart(evoCtx, months, [
+      { label: 'Contas a Receber', data: ar, borderColor: FPA_COLORS.primary, backgroundColor: 'rgba(5,150,105,0.08)', fill: true, tension: 0.3, pointRadius: 2 },
+      { label: 'Estoque', data: estoque, borderColor: FPA_COLORS.secondary, backgroundColor: 'rgba(37,99,235,0.06)', fill: true, tension: 0.3, pointRadius: 2 },
+      { label: 'Contas a Pagar', data: ap, borderColor: FPA_COLORS.danger, backgroundColor: 'rgba(220,38,38,0.05)', fill: true, tension: 0.3, pointRadius: 2 }
+    ]);
+  }
+
+  // Stock donut
+  const donutCtx = document.getElementById('chart-estoque-donut');
+  if (donutCtx) {
+    window.renderDonutChart(donutCtx,
+      ['Matéria-prima', 'Produto Acabado', 'Em Trânsito', 'Embalagem'],
+      [350000, 280000, 90000, 30000]
+    );
+  }
+});
+</script>
+{% endblock %}

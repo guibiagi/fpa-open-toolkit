@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+
+{% block title %}Endividamento · FP&A Open Toolkit{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+  {# Header #}
+  <div class="flex items-center justify-between">
+    <h1 class="text-2xl font-bold text-slate-900">Endividamento</h1>
+    <span class="text-sm text-slate-500 bg-white px-3 py-1 rounded-full border border-slate-200">
+      Dívida · Juros · Cobertura
+    </span>
+  </div>
+
+  {# Top cards #}
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4"
+       id="debt-cards"
+       hx-get="/api/debt"
+       hx-trigger="load"
+       hx-target="#debt-cards"
+       hx-swap="innerHTML">
+    {% for label in ['Dívida Total', 'Juros/Mês', 'Dívida/Receita', 'Cobertura de Juros'] %}
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 animate-pulse">
+      <div class="text-xs font-medium text-slate-500 uppercase tracking-wide">{{ label }}</div>
+      <div class="mt-2 text-xl font-bold text-slate-800">—</div>
+    </div>
+    {% endfor %}
+  </div>
+
+  {# Charts row #}
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+    {# Debt by type — donut #}
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+      <h2 class="text-lg font-semibold text-slate-800 mb-4">Dívida por Tipo</h2>
+      <div class="relative h-64 flex items-center justify-center">
+        <canvas id="chart-debt-donut" style="max-width: 260px;"></canvas>
+      </div>
+    </div>
+
+    {# Debt evolution — line #}
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+      <h2 class="text-lg font-semibold text-slate-800 mb-4">Evolução da Dívida</h2>
+      <div class="relative h-64">
+        <canvas id="chart-debt-evolution"></canvas>
+      </div>
+    </div>
+  </div>
+
+  {# Detail table #}
+  <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+    <h2 class="text-lg font-semibold text-slate-800 mb-4">Detalhamento Mensal</h2>
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="border-b border-slate-200 text-left">
+            <th class="py-2 px-3 font-medium text-slate-500">Mês</th>
+            <th class="py-2 px-3 font-medium text-slate-500">Tipo</th>
+            <th class="py-2 px-3 font-medium text-slate-500 text-right">Saldo Devedor</th>
+            <th class="py-2 px-3 font-medium text-slate-500 text-right">Juros</th>
+            <th class="py-2 px-3 font-medium text-slate-500 text-right">Amortização</th>
+            <th class="py-2 px-3 font-medium text-slate-500">Dívida/Receita</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for i in range(3) %}
+          <tr class="border-b border-slate-100">
+            <td class="py-2 px-3 text-slate-400">—</td>
+            <td class="py-2 px-3">
+              {% if i == 0 %}Capital de giro
+              {% elif i == 1 %}Financiamento importação
+              {% else %}Investimento produtivo{% endif %}
+            </td>
+            <td class="py-2 px-3 text-right text-slate-400">—</td>
+            <td class="py-2 px-3 text-right text-slate-400">—</td>
+            <td class="py-2 px-3 text-right text-slate-400">—</td>
+            <td class="py-2 px-3 text-slate-400">—</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Debt by type donut
+  const donutCtx = document.getElementById('chart-debt-donut');
+  if (donutCtx) {
+    window.renderDonutChart(donutCtx,
+      ['Capital de Giro', 'Financ. Importação', 'Invest. Produtivo'],
+      [1200000, 650000, 400000]
+    );
+  }
+
+  // Debt evolution line chart
+  const evoCtx = document.getElementById('chart-debt-evolution');
+  if (evoCtx) {
+    const months = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+    const total = months.map((_, i) => 2250000 - (i * 120000) + Math.random() * 30000);
+    const cg = months.map((_, i) => 1200000 - (i * 60000));
+    const fi = months.map((_, i) => 650000 - (i * 35000));
+    const ip = months.map((_, i) => 400000 - (i * 25000));
+    window.renderLineChart(evoCtx, months, [
+      { label: 'Dívida Total', data: total, borderColor: FPA_COLORS.danger, backgroundColor: 'rgba(220,38,38,0.08)', fill: true, tension: 0.4, pointRadius: 3, borderWidth: 2 },
+      { label: 'Capital de Giro', data: cg, borderColor: FPA_COLORS.warning, fill: false, tension: 0.4, pointRadius: 1, borderDash: [4,4] },
+      { label: 'Financ. Importação', data: fi, borderColor: FPA_COLORS.info, fill: false, tension: 0.4, pointRadius: 1, borderDash: [4,4] },
+      { label: 'Invest. Produtivo', data: ip, borderColor: FPA_COLORS.primary, fill: false, tension: 0.4, pointRadius: 1, borderDash: [4,4] }
+    ]);
+  }
+});
+</script>
+{% endblock %}
