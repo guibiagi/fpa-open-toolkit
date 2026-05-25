@@ -55,9 +55,13 @@ class TestAPI:
         assert resp.status_code == 501
         assert "not implemented" in resp.json()["detail"].lower()
 
-    def test_forecast_returns_501(self, client: TestClient) -> None:
+    def test_forecast_returns_200(self, client: TestClient) -> None:
         resp = client.get("/api/forecast")
-        assert resp.status_code == 501
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "historico" in data
+        assert "forecast" in data
+        assert len(data["forecast"]) == 12  # default horizon
 
     def test_cashflow_returns_501(self, client: TestClient) -> None:
         resp = client.get("/api/cashflow")
