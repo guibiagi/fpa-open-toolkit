@@ -63,9 +63,13 @@ class TestAPI:
         assert "forecast" in data
         assert len(data["forecast"]) == 12  # default horizon
 
-    def test_cashflow_returns_501(self, client: TestClient) -> None:
+    def test_cashflow_returns_200(self, client: TestClient) -> None:
         resp = client.get("/api/cashflow")
-        assert resp.status_code == 501
+        assert resp.status_code == 200
+        data = resp.json()
+        assert isinstance(data, list)
+        assert len(data) >= 30
+        assert "saldo_final_dia" in data[0]
 
     def test_working_capital_returns_501(self, client: TestClient) -> None:
         resp = client.get("/api/working-capital")
