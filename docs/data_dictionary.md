@@ -1,6 +1,8 @@
 # Dicionário de Dados
 
-## Datasets Sintéticos
+## Datasets Sintéticos (Input)
+
+Gerados deterministicamente por `src/data_generation/synthetic_generator.py` (seed=42).
 
 ### 1. faturamento_historico.csv
 
@@ -14,6 +16,7 @@ Histórico mensal de faturamento por família de produto e canal.
 | `familia_produto` | string | Família do produto (Higiene, Diagnóstico, Dermocosméticos, Nutracêuticos) |
 
 **Regras:** 48 meses de histórico, sazonalidade, tendência de crescimento, ruído controlado.
+**Consumido por:** `revenue_forecast.py`, `financial_kpis.py`
 
 ---
 
@@ -34,6 +37,7 @@ Títulos a receber (duplicatas, vendas a prazo).
 | `uf` | string | Unidade federativa do cliente |
 
 **Regras:** Prazos 30-90 dias, concentração Pareto 80/20, inadimplência parcial.
+**Consumido por:** `cashflow_projection.py`, `financial_kpis.py`
 
 ---
 
@@ -53,8 +57,8 @@ Títulos a pagar (fornecedores, despesas).
 | `status` | string | Aberto, Pago, Atrasado |
 
 **Categorias:** Matéria-prima, Embalagem, Folha, Impostos, Frete, Marketing, Energia, Aluguel, Serviços, Financeiro.
-
-**Regras:** Despesas fixas e variáveis. Matéria-prima = 30-40% da receita. Impostos em datas fixas (DARF, GIA).
+**Regras:** Despesas fixas e variáveis. Matéria-prima = 30-40% da receita. Impostos em datas fixas.
+**Consumido por:** `cashflow_projection.py`, `financial_kpis.py`
 
 ---
 
@@ -69,8 +73,8 @@ Saldo de estoque mensal por categoria.
 | `valor_estoque` | float | Valor do estoque (R$) |
 
 **Categorias:** Matéria-prima, Produto acabado, Produto em trânsito, Embalagem.
-
 **Regras:** Varia conforme faturamento. Inclui meses com aumento por compra antecipada.
+**Consumido por:** `financial_kpis.py`
 
 ---
 
@@ -88,6 +92,7 @@ Evolução mensal da dívida por tipo.
 | `prazo_meses` | int | Prazo original em meses |
 
 **Tipos:** Capital de giro, Financiamento importação, Investimento produtivo.
+**Consumido por:** `financial_kpis.py`
 
 ---
 
@@ -103,14 +108,15 @@ Custo mensal de vendas (COGS) por família de produto.
 | `custo_percentual` | float | Custo como % do faturamento da família |
 
 **Regras:** 45-65% do faturamento, tendência e sazonalidade. Necessário para PME.
+**Consumido por:** `financial_kpis.py` (cálculo do PME)
 
 ---
 
-## Datasets de Output
+## Datasets de Output (Engines)
 
 ### 7. forecast_faturamento.csv
 
-Projeção mensal de faturamento futuro.
+Projeção mensal de faturamento futuro. Gerado por `src/forecasting/revenue_forecast.py`.
 
 | Coluna | Tipo | Descrição |
 |--------|------|-----------|
@@ -119,11 +125,11 @@ Projeção mensal de faturamento futuro.
 | `forecast_otimista` | float | Cenário otimista = base + 10% (R$) |
 | `forecast_pessimista` | float | Cenário pessimista = base − 10% (R$) |
 
-**Horizonte default:** 12 meses. Percentuais parametrizáveis.
+**Horizonte default:** 12 meses (máx 24). Percentuais parametrizáveis.
 
 ### 8. fluxo_caixa_projetado.csv
 
-Projeção diária de fluxo de caixa para 90 dias.
+Projeção diária de fluxo de caixa para 90 dias. Gerado por `src/cashflow/cashflow_projection.py`.
 
 | Coluna | Tipo | Descrição |
 |--------|------|-----------|
@@ -132,10 +138,10 @@ Projeção diária de fluxo de caixa para 90 dias.
 | `saidas_previstas` | float | Total de saídas do dia (R$) |
 | `saldo_inicial_dia` | float | Saldo no início do dia (R$) |
 | `saldo_final_dia` | float | Saldo ao final do dia (R$) |
-| `observacao` | string | Classificação do risco |
+| `observacao` | string | Classificação do risco: `Caixa normal`, `Atenção: saldo baixo`, `Risco: caixa negativo` |
 
-**Observações:** `Caixa normal`, `Atenção: saldo baixo`, `Risco: caixa negativo`
+**Horizonte default:** 90 dias corridos. Saldo inicial parametrizável.
 
 ---
 
-*Nota: Datas no formato ISO 8601 (`YYYY-MM-DD`). Valores monetários em R$ (float).*
+*Nota: Datas no formato ISO 8601 (`YYYY-MM-DD`). Valores monetários em R$ (float). Dados 100% sintéticos — sem informações reais de empresas.*

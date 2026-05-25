@@ -7,18 +7,18 @@ O FP&A Open Toolkit é uma aplicação web **server-side** com renderização HT
 ```
 ┌──────────────┐     ┌──────────────────┐     ┌──────────────────┐
 │   Browser    │────▶│  FastAPI (App)   │────▶│  Engines (src/)  │
-│  (HTMX +     │     │  + Jinja2        │     │  - forecasting    │
-│   Chart.js)  │◀────│  + Static        │◀────│  - cashflow       │
-│              │     │                  │     │  - kpis           │
-└──────────────┘     │  /api/* → JSON   │     │  - export         │
+│  (HTMX +     │     │  + Jinja2        │     │  ✅ forecasting  │
+│   Chart.js)  │◀────│  + Static        │◀────│  ✅ cashflow     │
+│              │     │                  │     │  ✅ kpis         │
+└──────────────┘     │  /api/* → JSON   │     │  🟡 export       │
                      │  /*     → HTML   │     └──────────────────┘
                      └──────────────────┘              │
-                                                        ▼
-                                               ┌──────────────────┐
-                                               │  data/           │
-                                               │  synthetic/      │
-                                               │  outputs/        │
-                                               └──────────────────┘
+                     │  app/main.py                    ▼
+                     │  app/config.py         ┌──────────────────┐
+                     │  app/routers/          │  data/           │
+                     └──────────────────┘     │  synthetic/      │
+                                              │  outputs/        │
+                                              └──────────────────┘
 ```
 
 ## Decisões Arquiteturais
@@ -43,17 +43,31 @@ Em vez de um SPA (React, Vue), optamos por SSR com Jinja2 + HTMX:
 
 Toda página HTML consome dados via `GET /api/*` (JSON) — os mesmos endpoints podem ser usados para integração externa.
 
+**Endpoints implementados:**
+
+| Rota | Descrição | Engine |
+|------|-----------|--------|
+| `GET /api/overview` | Cards do dashboard (receita, NCG, dívida) | `kpis` |
+| `GET /api/forecast` | Histórico + projeção 12 meses | `forecasting` |
+| `GET /api/cashflow` | Fluxo de caixa diário 90 dias | `cashflow` |
+| `GET /api/working-capital` | Capital de giro e ciclo financeiro | `kpis` |
+| `GET /api/debt` | Endividamento e cobertura de juros | `kpis` |
+
 ### 4. Determinismo
 
-`random.seed(42)` garante que os dados sintéticos são idênticos entre execuções. Essencial para testes não-flaky e CI.
+`numpy.random.default_rng(seed=42)` garante que os dados sintéticos são idênticos entre execuções. Essencial para testes não-flaky e CI.
 
 ### 5. Feriados Brasileiros
 
-Uso da biblioteca `holidays` com `subdiv=None` (feriados nacionais). Sábados, domingos e feriados são identificados via `is_business_day()` no módulo `utils.dates.py`.
+Uso da biblioteca `holidays` com `subdiv=None` (feriados nacionais). Sábados, domingos e feriados são identificados via `is_business_day()` no módulo `utils/dates.py`.
 
 ### 6. Formatação na Apresentação
 
-Valores financeiros são armazenados como `float` (unidade: R$). A formatação BRL (separadores brasileiros) ocorre apenas na camada de template/app, via `utils.formatting.py`.
+Valores financeiros são armazenados como `float` (unidade: R$). A formatação BRL (separadores brasileiros) ocorre apenas na camada de template/app, via `utils/formatting.py`.
+
+### 7. Configuração por Ambiente
+
+`app/config.py` usa `pydantic-settings` com `.env` file. Variáveis: `SEED`, `DATA_DIR`, `ENV`, `HOST`, `PORT`. O lifespan do FastAPI gera dados sintéticos automaticamente se ausentes.
 
 ## Fluxo de Dados (Exemplo: Forecast)
 
@@ -68,7 +82,7 @@ Valores financeiros são armazenados como `float` (unidade: R$). A formatação 
        │
 5. Engine lê data/synthetic/faturamento_historico.csv
        │
-6. Retorna JSON com histórico + forecast
+6. Retorna JSON com histórico + forecast (3 cenários)
        │
 7. HTMX substitui o gráfico e tabela no DOM
        │
@@ -87,7 +101,9 @@ Valores financeiros são armazenados como `float` (unidade: R$). A formatação 
 | Dados | Pandas + NumPy | Padrão em análise financeira |
 | Excel | openpyxl | Exportação multi-aba |
 | Feriados | holidays (BR) | Regras oficiais brasileiras |
-| Testes | pytest + pytest-cov | Fixtures determinísticas |
+| Config | pydantic-settings | Tipagem e validação de settings |
+| Testes | pytest + pytest-cov | 196 testes, fixtures determinísticas |
+| CI | GitHub Actions | Ruff lint + pytest |
 | Linter | Ruff | Velocidade, zero config |
 | Task Runner | Makefile | Comandos padronizados |
 
@@ -97,11 +113,13 @@ Valores financeiros são armazenados como `float` (unidade: R$). A formatação 
 - **Sem autenticação** no MVP (público para demonstração)
 - **Sem banco de dados** no MVP — dados em CSV, state em memória
 - **Sem upload de arquivos** no MVP (previsto para v0.2)
+- **Headers de segurança** não configurados no MVP (previsto para v0.4)
 
-## Limitações Conhecidas (MVP)
+## Limitações Conhecidas (MVP v0.1)
 
 - Dados sintéticos apenas (sem upload real)
 - Forecast por média móvel simples (modelos avançados na v0.3)
 - Sem autenticação ou multitenancy
-- Sem persistência entre reinícios
+- Sem persistência entre reinícios (dados regenerados no startup)
 - Português brasileiro como idioma principal da interface
+- Exportação Excel ainda não implementada (issue #8)

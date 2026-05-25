@@ -1,25 +1,27 @@
 # Roadmap — FP&A Open Toolkit
 
-## v0.1 — MVP (atual)
+## v0.1 — MVP ✅ (Completo)
 
 - [x] Estrutura do projeto e tooling (pyproject.toml, Makefile, Ruff)
 - [x] Módulo de feriados BR e dias úteis (`utils.dates`)
 - [x] Utilitários de IO e formatação (`utils.io`, `utils.formatting`)
 - [x] Documentação inicial (README, data dictionary, architecture)
 - [x] Dockerfile + .dockerignore
-- [ ] Gerador de dados sintéticos (6 datasets)
-- [ ] Testes do gerador
-- [ ] Engine de forecast de receita
-- [ ] Engine de projeção de fluxo de caixa
-- [ ] Cálculo de KPIs financeiros
-- [ ] Exportação Excel (relatório consolidado)
-- [ ] FastAPI core (app/main.py, settings, logging)
-- [ ] API routers (endpoints JSON)
-- [ ] Pages router (rotas HTML)
-- [ ] Templates: base.html + Overview + Forecast
-- [ ] Templates: Cash Flow + Working Capital + Debt
-- [ ] Templates: Data Explorer + static assets
-- [ ] README final + CI
+- [x] Gerador de dados sintéticos (6 datasets, seed=42, determinístico)
+- [x] Testes do gerador (21 testes)
+- [x] Engine de forecast de receita (MA3 + crescimento + sazonalidade, 3 cenários)
+- [x] Engine de projeção de fluxo de caixa (90 dias, dias úteis BR, pesos ter/qua/qui)
+- [x] Cálculo de KPIs financeiros (20+ métricas: NCG, PMR, PME, PMP, ciclo, cobertura)
+- [x] FastAPI core (app/main.py, config via pydantic-settings, lifespan, health)
+- [x] API routers (endpoints JSON: overview, forecast, cashflow, working-capital, debt)
+- [x] Pages router (6 rotas HTML: index, forecast, cashflow, working-capital, debt, explorer)
+- [x] Templates: base.html + Overview + Forecast
+- [x] Templates: Cash Flow + Working Capital + Debt
+- [x] Templates: Data Explorer + static assets (CSS customizado, Chart.js)
+- [x] README final + CI (GitHub Actions: ruff + pytest)
+- [ ] Exportação Excel (relatório consolidado com 6 abas) — **issue #8**
+
+> 🟡 1 item pendente da v0.1: exportação Excel. **196 testes, 0 falhas.**
 
 ## v0.2 — Upload de Dados Reais
 
