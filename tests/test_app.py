@@ -50,10 +50,12 @@ class TestPages:
 class TestAPI:
     """API endpoints return structured data (501 until engines are ready)."""
 
-    def test_overview_returns_501(self, client: TestClient) -> None:
+    def test_overview_returns_200(self, client: TestClient) -> None:
         resp = client.get("/api/overview")
-        assert resp.status_code == 501
-        assert "not implemented" in resp.json()["detail"].lower()
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["receita_12m"] > 0
+        assert "ncg" in data
 
     def test_forecast_returns_200(self, client: TestClient) -> None:
         resp = client.get("/api/forecast")
@@ -71,13 +73,17 @@ class TestAPI:
         assert len(data) >= 30
         assert "saldo_final_dia" in data[0]
 
-    def test_working_capital_returns_501(self, client: TestClient) -> None:
+    def test_working_capital_returns_200(self, client: TestClient) -> None:
         resp = client.get("/api/working-capital")
-        assert resp.status_code == 501
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["ncg"] != 0
 
-    def test_debt_returns_501(self, client: TestClient) -> None:
+    def test_debt_returns_200(self, client: TestClient) -> None:
         resp = client.get("/api/debt")
-        assert resp.status_code == 501
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["divida_total"] > 0
 
 
 class TestErrorHandling:
